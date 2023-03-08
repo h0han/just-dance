@@ -42,7 +42,7 @@ def draw_joint_info(frame, pose_landmarks, score):
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.5
-    color = (255, 255, 255)
+    color = (255, 0, 0)
     thickness = 1
     pos = (10, 30)
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
@@ -97,7 +97,7 @@ while True:
 
         # draw joint info
         joint_scores = [0, 0]
-        for i, joint in enumerate([11, 12]):
+        for i, joint in enumerate([0, 1]):
             if prev_pose_landmarks is not None:
                 joint_scores[i] = draw_joint_info(frame_video, score, joint_names[i], prev_pose_landmarks.landmark[joint])
             
