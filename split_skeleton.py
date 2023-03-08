@@ -33,11 +33,23 @@ while True:
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         # RGB로 변환 후 넘겨줌
         pose_results = pose.process(cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB))
+        # webcam pose
+        w_pose_results = pose.process(cv2.cvtColor(frame_webcam, cv2.COLOR_BGR2RGB))
 
         # Pose Landmark 시각화
         mp_drawing = mp.solutions.drawing_utils
+
         # frame_video = cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB)
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        
+        # webcam pose
+            # 색상 구별
+        mp_drawing_styles = mp.solutions.drawing_styles
+        line_color = (0, 255, 0)
+        mp_drawing.draw_landmarks(frame_webcam, w_pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                  connection_drawing_spec=mp_drawing_styles.DrawingSpec(color=line_color, thickness=2),
+                                  )
+        
         
         # TODO : skeleton 좌우 반전
         mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
