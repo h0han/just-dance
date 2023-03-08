@@ -41,25 +41,30 @@ while True:
         
         # TODO : skeleton 좌우 반전
         mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        # flip_results = pose_results.pose_landmarks
-        # for i in range(mp_pose.PoseLandmark.NUM_LANDMARKS):
-        #     flip_results.landmark[i].x = 1 - flip_results.landmark[i].x
-        # mp_drawing.draw_landmarks(frame_webcam, flip_results, mp_pose.POSE_CONNECTIONS)
 
 
-    # 좌우 분할
-    # h, w, _ = frame_webcam.shape
-    # new_w = int(video_height / h * w)
-    # frame = np.zeros((video_height, video_width + new_w, 3), dtype=np.uint8)
-    # frame[:, :video_width, :] = cv2.resize(frame_video, (video_width, video_height))
-    # frame[:, video_width:, :] = cv2.flip(cv2.resize(frame_webcam, (new_w, video_height)), 1)
+    # 비디오 해상도 가져오기
+    video_width = int(cap_video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    video_height = int(cap_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    # 좌우 분할
-    frame_webcam = cv2.resize(frame_webcam, (video_width, video_height))
-    h, w, _ = frame_webcam.shape
-    frame = np.zeros((video_height, video_width + w, 3), dtype=np.uint8)
-    frame[:, :video_width, :] = cv2.resize(frame_video, (video_width, video_height))
-    frame[:, video_width:, :] = cv2.flip(frame_webcam, 1)
+    # 웹캠 해상도 가져오기
+    webcam_width = int(cap_webcam.get(cv2.CAP_PROP_FRAME_WIDTH))
+    webcam_height = int(cap_webcam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # 웹캠 프레임의 비율 유지하면서 원본 비디오 프레임 크기에 맞게 크기 조정
+    if webcam_width > webcam_height:
+        new_width = int(video_height / webcam_height * webcam_width)
+        new_height = video_height
+    else:
+        new_width = video_width
+        new_height = int(video_width / webcam_width * webcam_height)
+
+    frame_webcam_resized = cv2.resize(frame_webcam, (new_width, new_height))
+
+    # 나머지 빈 영역을 검은색으로 채우기
+    frame = np.zeros((video_height, video_width + new_width, 3), dtype=np.uint8)
+    frame[:, :video_width, :] = frame_video
+    frame[:, video_width:(video_width+new_width), :] = cv2.flip(frame_webcam_resized, 1)
 
 
     # 윈도우에 프레임 출력
