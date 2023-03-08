@@ -39,14 +39,36 @@ while True:
         # frame_video = cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB)
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         
-        mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        # 웹캠 화면에도 skeleton 추가, 이후 skeleton 좌우 반전
+        left_id = [15, 17, 19, 21, 23, 25]
+        right_id = [16, 18, 20, 22, 24, 26]
+
+        flip_results = pose_results.pose_landmarks
+        for idx_l, idx_r in zip(left_id, right_id):
+            flip_results.landmark[idx_l], flip_results.landmark[idx_r] = flip_results.landmark[idx_r], flip_results.landmark[idx_l]
+
+
+        # mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        # flip_results = pose_results.pose_landmarks
+        # for i in range(mp_pose.PoseLandmark.NUM_LANDMARKS):
+        #     flip_results.landmark[i].x = 1 - flip_results.landmark[i].x
+        mp_drawing.draw_landmarks(frame_webcam, flip_results, mp_pose.POSE_CONNECTIONS)
+
 
     # 좌우 분할
+    # h, w, _ = frame_webcam.shape
+    # new_w = int(video_height / h * w)
+    # frame = np.zeros((video_height, video_width + new_w, 3), dtype=np.uint8)
+    # frame[:, :video_width, :] = cv2.resize(frame_video, (video_width, video_height))
+    # frame[:, video_width:, :] = cv2.flip(cv2.resize(frame_webcam, (new_w, video_height)), 1)
+
+    # 좌우 분할
+    frame_webcam = cv2.resize(frame_webcam, (video_width, video_height))
     h, w, _ = frame_webcam.shape
-    new_w = int(video_height / h * w)
-    frame = np.zeros((video_height, video_width + new_w, 3), dtype=np.uint8)
+    frame = np.zeros((video_height, video_width + w, 3), dtype=np.uint8)
     frame[:, :video_width, :] = cv2.resize(frame_video, (video_width, video_height))
-    frame[:, video_width:, :] = cv2.flip(cv2.resize(frame_webcam, (new_w, video_height)), 1)
+    frame[:, video_width:, :] = cv2.flip(frame_webcam, 1)
+
 
     # 윈도우에 프레임 출력
     cv2.imshow('2-screen display', frame)
