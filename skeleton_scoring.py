@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import time
 
 # Scoring
 def calculate_score(joint, pose_landmarks, prev_pose_landmarks, score):
@@ -33,13 +34,13 @@ def draw_joint_info(frame, score):
     
     # Joint 이름과 score를 출력할 문자열 생성
     joint_info = ''
-    joint_info += f'left_shoulder : {score}'
+    joint_info += f'left_shoulder movement : {score}'
     
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
-    font_scale = 0.5
+    font_scale = 1
     color = (255, 0, 0)
-    thickness = 1
+    thickness = 2
     pos = (10, 30)
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
 
@@ -59,11 +60,11 @@ cv2.namedWindow('2-screen display', cv2.WINDOW_NORMAL)
 mp_pose = mp.solutions.pose
 
 # 초기값 설정
-
 joint = 11
 score = 0
 pose_landmarks = None
 prev_pose_landmarks = None
+prev_time = 0
 
 while True:
     # 영상 프레임 읽어오기
@@ -76,6 +77,13 @@ while True:
     ret, frame_webcam = cap_webcam.read()
     if not ret:
         continue
+
+    # fps 계산
+    cur_time = time.time()
+    fps = 1 / (cur_time - prev_time)
+    prev_time = cur_time
+
+    cv2.putText(frame_video, f'FPS: {int(fps)}', (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     # MediaPipe Pose 를 사용한 skeleton estimation
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
@@ -103,7 +111,7 @@ while True:
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-            # webcam pose
+        # webcam pose
             # 색상 구별
         mp_drawing_styles = mp.solutions.drawing_styles
         line_color = (255, 0, 0)
