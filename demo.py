@@ -1,7 +1,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import time
+import timeit
 import math
 
 # Scoring
@@ -13,47 +13,11 @@ def calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score):
             score += 1
     return score, pose_landmarks
 
-# Speed of the joint
-def calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed):
-    if prev_pose_landmarks is not None:
-        cur_joint = pose_landmarks.landmark[joint]
-        prev_joint = prev_pose_landmarks.landmark[joint]
-        cur_time = time.time()
-        prev_time = cur_time - 1
-        dt = cur_time - prev_time
-        dx = cur_joint.x - prev_joint.x
-        dy = cur_joint.y - prev_joint.y
-        dist = math.sqrt(dx**2 + dy**2)
-        speed = dist / dt
-        # print(dx, dy, dist, dt, speed)
-    return speed, pose_landmarks
-
-
 # Joint info
 def draw_joint_info(frame, score):
-    # Joint 번호와 이름 매칭
-    # JOINTS = {0: 'nose',
-    #           1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
-    #           4: 'right_eye_inner', 5: 'right_eye', 6: 'right_eye_outer',
-    #           7: 'left_ear', 8: 'right_ear',
-    #           9: 'mouth_left', 10: 'mouth_right',
-    #           11: 'left_shoulder', 12: 'right_shoulder',
-    #           13: 'left_elbow', 14: 'right_elbow',
-    #           15: 'left_wrist', 16: 'right_wrist',
-    #           17: 'left_pinky', 18: 'right_pinky',
-    #           19: 'left_index', 20: 'right_index',
-    #           21: 'left_thumb', 22: 'right_thumb',
-    #           23: 'left_hip', 24: 'right_hip',
-    #           25: 'left_knee', 26: 'right_knee',
-    #           27: 'left_ankle', 28: 'right_ankle',
-    #           29: 'left_heel', 30: 'right_heel',
-    #           31: 'left_foot_index', 32: 'right_foot_index'}
-    
     # Joint 이름과 score를 출력할 문자열 생성
     joint_info = ''
     joint_info += f'l_w mv : {score} '
-    # joint_info += f'left_wrist speed : {speed} px/sec'
-    # joint_info += f'l_w speed : {m_count} mv/s'
     
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -118,13 +82,11 @@ while True:
         if prev_pose_landmarks is not None:
             pose_landmarks = pose_results.pose_landmarks
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score)
-            # speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             
             prev_pose_landmarks = pose_landmarks
         else:
             pose_landmarks = pose_results.pose_landmarks
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
-            # speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             
 
         cv2.putText(frame_video, f'MV/FPS: {int(score*(fps/4))}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
