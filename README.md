@@ -15,7 +15,7 @@
 
 ## Prerequisites
 - A video to be used for demonstration (if you use the CPU, it's better to use shorter videos)
-
+- Put your video path in `cap_video = cv2.VideoCapture('video.mp4')`
 
 ## Run
 ```
