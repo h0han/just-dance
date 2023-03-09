@@ -24,7 +24,7 @@ $ pyenv virtualenv 3.6 <the name of virtualenv>
 
 
 ```
-$ pip install requirements.txt
+$ pip3 install requirements.txt
 ```
 
 
