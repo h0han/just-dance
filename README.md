@@ -31,3 +31,6 @@ $ pip3 install requirements.txt
 ```
 $ python3 demo.py
 ```
+
+## Result
+<img width="100%" src="result/result.gif"/>
