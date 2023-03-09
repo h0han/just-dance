@@ -1,14 +1,17 @@
 # Just Dance (Work in Progress)
 
-### Features implemented
+## Features implemented
 - Perform viewing on user screen by splitting Video and Webcam (streaming) - Perform Pose estimation for Reference Video
 - Perform pose estimation for webcam (streaming)
 - Viewing the pose estimation result on the webcam
 - Perform movement calculation and viewing for specific joints
 
-### Features to be implemented
+## Features to be implemented
 - Calculate how sensitive a particular joint is to move
 - Compare skeleton similarity between Reference Video and Webcam
+
+## Prerequisites
+- Video to be used for demo
 
 ## Run
 ```
