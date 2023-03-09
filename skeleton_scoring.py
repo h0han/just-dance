@@ -24,13 +24,28 @@ def calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed):
         dy = cur_joint.y - prev_joint.y
         dist = math.sqrt(dx**2 + dy**2)
         speed = dist / dt
-        print(dx, dy, dist, dt, speed)
+        # print(dx, dy, dist, dt, speed)
     return speed, pose_landmarks
 
+def calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, movement_count):
+    if prev_pose_landmarks is not None:
+        cur_joint = pose_landmarks.landmark[joint]
+        prev_joint = prev_pose_landmarks.landmark[joint]
+        if abs(cur_joint.x - prev_joint.x) > 0.005 or abs(cur_joint.y - prev_joint.y) > 0.005:
+            movement_count += 1
+    return movement_count, pose_landmarks
 
+# 1초 동안 해당 관절이 움직인 횟수 반환
+def calculate_movement_frequency_per_second(joint):
+    m_count = 0
+    start_time = time.time()
+    m_count, _ = calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, m_count)
+    if time.time() - start_time > 1:
+        print(m_count)
+        return m_count
 
 # Joint info
-def draw_joint_info(frame, score, speed):
+def draw_joint_info(frame, score, speed, m_count):
     # Joint 번호와 이름 매칭
     # JOINTS = {0: 'nose',
     #           1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
@@ -51,8 +66,9 @@ def draw_joint_info(frame, score, speed):
     
     # Joint 이름과 score를 출력할 문자열 생성
     joint_info = ''
-    # joint_info += f'left_wrist movement : {score} \n'
-    joint_info += f'left_wrist speed : {speed} px/sec'
+    joint_info += f'l_w mv : {score} '
+    # joint_info += f'left_wrist speed : {speed} px/sec'
+    joint_info += f'l_w speed : {m_count} mv/s'
     
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -83,6 +99,8 @@ pose_landmarks = None
 prev_pose_landmarks = None
 speed = 0
 prev_time = 0
+movement_count = 0
+m_count = 0
 
 while True:
     # 영상 프레임 읽어오기
@@ -118,14 +136,18 @@ while True:
             pose_landmarks = pose_results.pose_landmarks
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score)
             speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
+            movement_count, prev_pose_landmarks = calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, movement_count)
+            m_count, _ = calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, m_count)
             prev_pose_landmarks = pose_landmarks
         else:
             pose_landmarks = pose_results.pose_landmarks
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
             speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
+            movement_count, prev_pose_landmarks = calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, movement_count)
+            m_count, _ = calculate_movement_frequency(joint, pose_landmarks, prev_pose_landmarks, m_count)
 
         # Joint Info 표기
-        draw_joint_info(frame_video, score, speed)
+        draw_joint_info(frame_video, score, speed, m_count)
 
         # Pose Landmark 그리기
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
