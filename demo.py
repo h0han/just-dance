@@ -28,7 +28,7 @@ def draw_joint_info(frame, score):
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
 
 # 영상과 웹캠 캡처 객체 생성
-cap_video = cv2.VideoCapture('OMG_sml.mp4')
+cap_video = cv2.VideoCapture('video.mp4')
 cap_webcam = cv2.VideoCapture(0)
 
 # 원본 영상의 크기 가져오기
