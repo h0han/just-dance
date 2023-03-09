@@ -2,9 +2,10 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
+import math
 
 # Scoring
-def calculate_score(joint, pose_landmarks, prev_pose_landmarks, score):
+def calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score):
     if prev_pose_landmarks is not None:
         cur_joint = pose_landmarks.landmark[joint]
         prev_joint = prev_pose_landmarks.landmark[joint]
@@ -12,8 +13,24 @@ def calculate_score(joint, pose_landmarks, prev_pose_landmarks, score):
             score += 1
     return score, pose_landmarks
 
+def calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed):
+    if prev_pose_landmarks is not None:
+        cur_joint = pose_landmarks.landmark[joint]
+        prev_joint = prev_pose_landmarks.landmark[joint]
+        cur_time = time.time()
+        prev_time = cur_time - 1
+        dt = cur_time - prev_time
+        dx = cur_joint.x - prev_joint.x
+        dy = cur_joint.y - prev_joint.y
+        dist = math.sqrt(dx**2 + dy**2)
+        speed = dist / dt
+        print(dx, dy, dist, dt, speed)
+    return speed, pose_landmarks
+
+
+
 # Joint info
-def draw_joint_info(frame, score):
+def draw_joint_info(frame, score, speed):
     # Joint 번호와 이름 매칭
     # JOINTS = {0: 'nose',
     #           1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
@@ -34,7 +51,8 @@ def draw_joint_info(frame, score):
     
     # Joint 이름과 score를 출력할 문자열 생성
     joint_info = ''
-    joint_info += f'left_shoulder movement : {score}'
+    # joint_info += f'left_wrist movement : {score} \n'
+    joint_info += f'left_wrist speed : {speed} px/sec'
     
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -43,7 +61,6 @@ def draw_joint_info(frame, score):
     thickness = 2
     pos = (10, 30)
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
-
 
 # 영상과 웹캠 캡처 객체 생성
 cap_video = cv2.VideoCapture('OMG_sml.mp4')
@@ -60,10 +77,11 @@ cv2.namedWindow('2-screen display', cv2.WINDOW_NORMAL)
 mp_pose = mp.solutions.pose
 
 # 초기값 설정
-joint = 11
+joint = 19
 score = 0
 pose_landmarks = None
 prev_pose_landmarks = None
+speed = 0
 prev_time = 0
 
 while True:
@@ -83,10 +101,11 @@ while True:
     fps = 1 / (cur_time - prev_time)
     prev_time = cur_time
 
-    cv2.putText(frame_video, f'FPS: {int(fps)}', (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(frame_video, f'FPS: {int(fps)}', (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
 
     # MediaPipe Pose 를 사용한 skeleton estimation
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
+
         # RGB로 변환 후 넘겨줌
         pose_results = pose.process(cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB))
         w_pose_results = pose.process(cv2.cvtColor(frame_webcam, cv2.COLOR_BGR2RGB))
@@ -97,15 +116,16 @@ while True:
         # Score 계산
         if prev_pose_landmarks is not None:
             pose_landmarks = pose_results.pose_landmarks
-            score, prev_pose_landmarks = calculate_score(joint, pose_landmarks, prev_pose_landmarks, score)
+            score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score)
+            speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             prev_pose_landmarks = pose_landmarks
         else:
             pose_landmarks = pose_results.pose_landmarks
-            score, prev_pose_landmarks = calculate_score(joint, pose_landmarks, pose_landmarks, score)
+            score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
+            speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
 
-
-        draw_joint_info(frame_video, score)
-
+        # Joint Info 표기
+        draw_joint_info(frame_video, score, speed)
 
         # Pose Landmark 그리기
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
