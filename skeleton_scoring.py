@@ -3,41 +3,37 @@ import mediapipe as mp
 import numpy as np
 
 # Scoring
-def calculate_score(pose_landmarks, prev_pose_landmarks, score):
+def calculate_score(joint, pose_landmarks, prev_pose_landmarks, score):
     if prev_pose_landmarks is not None:
-        for joint in [11, 12]:
-            cur_joint = pose_landmarks.landmark[joint]
-            prev_joint = prev_pose_landmarks.landmark[joint]
-            if abs(cur_joint.x - prev_joint.x) > 0.05 or abs(cur_joint.y - prev_joint.y) > 0.05:
-                score += 1
+        cur_joint = pose_landmarks.landmark[joint]
+        prev_joint = prev_pose_landmarks.landmark[joint]
+        if abs(cur_joint.x - prev_joint.x) > 0.005 or abs(cur_joint.y - prev_joint.y) > 0.005:
+            score += 1
     return score, pose_landmarks
 
 # Joint info
-def draw_joint_info(frame, pose_landmarks, score):
+def draw_joint_info(frame, score):
     # Joint 번호와 이름 매칭
-    JOINTS = {0: 'nose',
-              1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
-              4: 'right_eye_inner', 5: 'right_eye', 6: 'right_eye_outer',
-              7: 'left_ear', 8: 'right_ear',
-              9: 'mouth_left', 10: 'mouth_right',
-              11: 'left_shoulder', 12: 'right_shoulder',
-              13: 'left_elbow', 14: 'right_elbow',
-              15: 'left_wrist', 16: 'right_wrist',
-              17: 'left_pinky', 18: 'right_pinky',
-              19: 'left_index', 20: 'right_index',
-              21: 'left_thumb', 22: 'right_thumb',
-              23: 'left_hip', 24: 'right_hip',
-              25: 'left_knee', 26: 'right_knee',
-              27: 'left_ankle', 28: 'right_ankle',
-              29: 'left_heel', 30: 'right_heel',
-              31: 'left_foot_index', 32: 'right_foot_index'}
+    # JOINTS = {0: 'nose',
+    #           1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
+    #           4: 'right_eye_inner', 5: 'right_eye', 6: 'right_eye_outer',
+    #           7: 'left_ear', 8: 'right_ear',
+    #           9: 'mouth_left', 10: 'mouth_right',
+    #           11: 'left_shoulder', 12: 'right_shoulder',
+    #           13: 'left_elbow', 14: 'right_elbow',
+    #           15: 'left_wrist', 16: 'right_wrist',
+    #           17: 'left_pinky', 18: 'right_pinky',
+    #           19: 'left_index', 20: 'right_index',
+    #           21: 'left_thumb', 22: 'right_thumb',
+    #           23: 'left_hip', 24: 'right_hip',
+    #           25: 'left_knee', 26: 'right_knee',
+    #           27: 'left_ankle', 28: 'right_ankle',
+    #           29: 'left_heel', 30: 'right_heel',
+    #           31: 'left_foot_index', 32: 'right_foot_index'}
     
     # Joint 이름과 score를 출력할 문자열 생성
     joint_info = ''
-    for idx, joint in JOINTS.items():
-        if pose_landmarks.landmark[idx].visibility > 0.5:
-            joint_info += f'{joint}: {score}'
-            joint_info += '\n'
+    joint_info += f'left_shoulder : {score}'
     
     # 문자열을 이미지 상에 표시
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -63,11 +59,10 @@ cv2.namedWindow('2-screen display', cv2.WINDOW_NORMAL)
 mp_pose = mp.solutions.pose
 
 # 초기값 설정
-prev_pose_landmarks = None
-score = 0
 
-joint_names = ["Left shoulder", "Right shoulder"]
+joint = 11
 score = 0
+pose_landmarks = None
 prev_pose_landmarks = None
 
 while True:
@@ -90,17 +85,20 @@ while True:
 
         # Pose Landmark 시각화
         mp_drawing = mp.solutions.drawing_utils
-
+        
         # Score 계산
         if prev_pose_landmarks is not None:
-            score, prev_pose_landmarks = calculate_score(pose_results.pose_landmarks, prev_pose_landmarks)
+            pose_landmarks = pose_results.pose_landmarks
+            score, prev_pose_landmarks = calculate_score(joint, pose_landmarks, prev_pose_landmarks, score)
+            prev_pose_landmarks = pose_landmarks
+        else:
+            pose_landmarks = pose_results.pose_landmarks
+            score, prev_pose_landmarks = calculate_score(joint, pose_landmarks, pose_landmarks, score)
 
-        # draw joint info
-        joint_scores = [0, 0]
-        for i, joint in enumerate([0, 1]):
-            if prev_pose_landmarks is not None:
-                joint_scores[i] = draw_joint_info(frame_video, score, joint_names[i], prev_pose_landmarks.landmark[joint])
-            
+
+        draw_joint_info(frame_video, score)
+
+
         # Pose Landmark 그리기
         mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
         mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
