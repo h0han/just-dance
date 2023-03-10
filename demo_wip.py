@@ -4,23 +4,15 @@ import numpy as np
 import time
 import math
 
-# Joint 번호와 이름 매칭
-JOINTS = {0: 'nose',
-          1: 'left_eye_inner', 2: 'left_eye', 3: 'left_eye_outer',
-          4: 'right_eye_inner', 5: 'right_eye', 6: 'right_eye_outer',
-          7: 'left_ear', 8: 'right_ear',
-          9: 'mouth_left', 10: 'mouth_right',
-          11: 'left_shoulder', 12: 'right_shoulder',
-          13: 'left_elbow', 14: 'right_elbow',
-          15: 'left_wrist', 16: 'right_wrist',
-          17: 'left_pinky', 18: 'right_pinky',
-          19: 'left_index', 20: 'right_index',
-          21: 'left_thumb', 22: 'right_thumb',
-          23: 'left_hip', 24: 'right_hip',
-          25: 'left_knee', 26: 'right_knee',
-          27: 'left_ankle', 28: 'right_ankle',
-          29: 'left_heel', 30: 'right_heel',
-          31: 'left_foot_index', 32: 'right_foot_index'}
+# Get the number of landmarks
+num_landmarks = len(mp.solutions.pose.PoseLandmark)
+
+# Create a dictionary of landmark names
+# Create a dictionary of landmark names
+landmark_names = {}
+for landmark in mp.solutions.pose.PoseLandmark:
+    landmark_names[landmark] = landmark.name
+
 
 # Scoring
 def calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score):
@@ -45,7 +37,6 @@ def calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed):
         speed = dist / dt
         # print(dx, dy, dist, dt, speed)
     return speed, pose_landmarks
-
 
 # Joint info
 def draw_joint_info(frame, score):
@@ -82,66 +73,26 @@ mp_drawing_styles = mp.solutions.drawing_styles
 def draw_landmarks(frame, pose_landmarks, is_flipped):
     if is_flipped:
         # Flip the pose landmarks manually
-        flipped_landmarks = [mp.solutions.pose.PoseLandmark(
+        flipped_landmarks = [mp_pose.PoseLandmark(
             x=-lmk.x, y=lmk.y, z=lmk.z, visibility=lmk.visibility,
-            presence=lmk.presence, landmark_type=get_flipped_landmark_name(lmk))
-            for lmk in pose_landmarks.landmark[::-1]]
+            presence=lmk.presence, landmark_type=get_flipped_landmark_name(idx))
+            for idx, lmk in enumerate(pose_landmarks.landmark[::-1])]
         # Draw the flipped pose landmarks
-        mp.solutions.drawing_utils.draw_landmarks(
-            frame, mp.solutions.pose.PoseLandmarkList(landmark=flipped_landmarks),
+        mp_drawing.draw_landmarks(
+            frame, mp_pose.PoseLandmarkList(landmark=flipped_landmarks),
             mp_pose.POSE_CONNECTIONS,
-            landmark_drawing_spec=mp.solutions.drawing_styles.get_default_pose_landmarks_style())
+            landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
     else:
         # Draw the unflipped pose landmarks
-        mp.solutions.drawing_utils.draw_landmarks(
-            frame, pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
+        for landmark in pose_landmarks.landmark:
+            x = int(landmark.x * frame.shape[1])
+            y = int(landmark.y * frame.shape[0])
+            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)  
 
 def get_flipped_landmark_name(lmk):
-    if lmk == mp.solutions.pose.PoseLandmark.NOSE:
-        return lmk
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_EYE:
-        return mp.solutions.pose.PoseLandmark.RIGHT_EYE
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_EYE:
-        return mp.solutions.pose.PoseLandmark.LEFT_EYE
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_EAR:
-        return mp.solutions.pose.PoseLandmark.RIGHT_EAR
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_EAR:
-        return mp.solutions.pose.PoseLandmark.LEFT_EAR
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_SHOULDER:
-        return mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER:
-        return mp.solutions.pose.PoseLandmark.LEFT_SHOULDER
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_ELBOW:
-        return mp.solutions.pose.PoseLandmark.RIGHT_ELBOW
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_ELBOW:
-        return mp.solutions.pose.PoseLandmark.LEFT_ELBOW
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_WRIST:
-        return mp.solutions.pose.PoseLandmark.RIGHT_WRIST
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_WRIST:
-        return mp.solutions.pose.PoseLandmark.LEFT_WRIST
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_PINKY:
-        return mp.solutions.pose.PoseLandmark.RIGHT_PINKY
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_PINKY:
-        return mp.solutions.pose.PoseLandmark.LEFT_PINKY
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_INDEX:
-        return mp.solutions.pose.PoseLandmark.RIGHT_INDEX
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_INDEX:
-        return mp.solutions.pose.PoseLandmark.LEFT_INDEX
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_THUMB:
-        return mp.solutions.pose.PoseLandmark.RIGHT_THUMB
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_THUMB:
-        return mp.solutions.pose.PoseLandmark.LEFT_THUMB
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_HIP:
-        return mp.solutions.pose.PoseLandmark.RIGHT_HIP
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_HIP:
-        return mp.solutions.pose.PoseLandmark.LEFT_HIP
-    elif lmk == mp.solutions.pose.PoseLandmark.LEFT_KNEE:
-        return mp.solutions.pose.PoseLandmark.RIGHT_KNEE
-    elif lmk == mp.solutions.pose.PoseLandmark.RIGHT_KNEE:
-        return
-
-
+    for idx, landmark in enumerate(mp.solutions.pose.PoseLandmark):
+        if lmk == landmark:
+            return mp.solutions.pose.PoseLandmark(len(mp.solutions.pose.PoseLandmark) - idx - 1)
 
 
 # 초기값 설정
