@@ -8,11 +8,9 @@ import math
 num_landmarks = len(mp.solutions.pose.PoseLandmark)
 
 # Create a dictionary of landmark names
-# Create a dictionary of landmark names
 landmark_names = {}
 for landmark in mp.solutions.pose.PoseLandmark:
     landmark_names[landmark] = landmark.name
-
 
 # Scoring
 def calculate_movement(joint, pose_landmarks, prev_pose_landmarks, score):
@@ -37,6 +35,27 @@ def calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed):
         speed = dist / dt
         # print(dx, dy, dist, dt, speed)
     return speed, pose_landmarks
+
+def calculate_similarity(video_pose_landmarks, webcam_pose_landmarks):
+    similarity = 0
+    
+    # Check if webcam pose landmarks are not None
+    if webcam_pose_landmarks is None:
+        return similarity
+    
+    # Get the position of the left wrist joint in the video pose
+    video_left_wrist = video_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
+    
+    # Get the position of the left wrist joint in the webcam pose
+    webcam_left_wrist = webcam_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
+    
+    # Calculate the Euclidean distance between the two left wrist joint positions
+    distance = math.sqrt((video_left_wrist.x - webcam_left_wrist.x)**2 + (video_left_wrist.y - webcam_left_wrist.y)**2)
+    
+    # Convert distance to similarity score using a linear function
+    similarity = max(0, 1 - distance / 0.2)
+    
+    return similarity
 
 # Joint info
 def draw_joint_info(frame, score):
@@ -69,31 +88,6 @@ cv2.namedWindow('2-screen display', cv2.WINDOW_NORMAL)
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
-
-def draw_landmarks(frame, pose_landmarks, is_flipped):
-    if is_flipped:
-        # Flip the pose landmarks manually
-        flipped_landmarks = [mp_pose.PoseLandmark(
-            x=-lmk.x, y=lmk.y, z=lmk.z, visibility=lmk.visibility,
-            presence=lmk.presence, landmark_type=get_flipped_landmark_name(idx))
-            for idx, lmk in enumerate(pose_landmarks.landmark[::-1])]
-        # Draw the flipped pose landmarks
-        mp_drawing.draw_landmarks(
-            frame, mp_pose.PoseLandmarkList(landmark=flipped_landmarks),
-            mp_pose.POSE_CONNECTIONS,
-            landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
-    else:
-        # Draw the unflipped pose landmarks
-        for landmark in pose_landmarks.landmark:
-            x = int(landmark.x * frame.shape[1])
-            y = int(landmark.y * frame.shape[0])
-            cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)  
-
-def get_flipped_landmark_name(lmk):
-    for idx, landmark in enumerate(mp.solutions.pose.PoseLandmark):
-        if lmk == landmark:
-            return mp.solutions.pose.PoseLandmark(len(mp.solutions.pose.PoseLandmark) - idx - 1)
-
 
 # 초기값 설정
 joint = 19
@@ -129,6 +123,8 @@ while True:
         pose_results = pose.process(cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB))
         w_pose_results = pose.process(cv2.cvtColor(frame_webcam, cv2.COLOR_BGR2RGB))
 
+        # Calculate the similarity score
+        similarity = calculate_similarity(pose_results.pose_landmarks, w_pose_results.pose_landmarks)
 
         # Score 계산
         if prev_pose_landmarks is not None:
@@ -142,17 +138,15 @@ while True:
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
             # speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             
-
+        cv2.putText(frame_video, f'Similarity: {similarity:.2f}', (10, 140), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
         cv2.putText(frame_video, f'MV/FPS: {int(score*(fps/4))}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         # Joint Info 표기
         draw_joint_info(frame_video, score)
 
         # Pose Landmark 그리기
-        # mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        # mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        draw_landmarks(frame_video, pose_results.pose_landmarks, False)
-        draw_landmarks(frame_webcam, pose_results.pose_landmarks, True)
+        mp_drawing.draw_landmarks(frame_video, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+        mp_drawing.draw_landmarks(frame_webcam, pose_results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
         # webcam pose
             # 색상 구별
@@ -183,8 +177,7 @@ while True:
     # 나머지 빈 영역을 검은색으로 채우기
     frame = np.zeros((video_height, video_width + new_width, 3), dtype=np.uint8)
     frame[:, :video_width, :] = frame_video
-    # frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
-    frame[:, :video_width, :] = frame_video[:, ::-1, :]
+    frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
 
     # 윈도우에 프레임 출력
     cv2.imshow('2-screen display', frame)
