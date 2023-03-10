@@ -73,13 +73,20 @@ def draw_joint_info(frame, score):
     pos = (10, 30)
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
 
+def joint_highlight(frame, webcam_pose_landmarks):
+    if webcam_pose_landmarks is not None:
+        webcam_left_wrist = webcam_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
+        if webcam_left_wrist.visibility > 0.1:
+            # Calculate the position of the left wrist joint in the frame
+            left_wrist_x = int(webcam_left_wrist.x * frame.shape[1])
+            left_wrist_y = int(webcam_left_wrist.y * frame.shape[0])
+            # Draw a marker at the position of the left wrist joint
+            cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (255, 255, 0), markerType=cv2.MARKER_STAR, markerSize=20, thickness=2, line_type=cv2.LINE_AA)
+
+
 # 영상과 웹캠 캡처 객체 생성
 cap_video = cv2.VideoCapture('OMG_sml.mp4')
 cap_webcam = cv2.VideoCapture(0)
-
-# 원본 영상의 크기 가져오기
-video_width = int(cap_video.get(cv2.CAP_PROP_FRAME_WIDTH))
-video_height = int(cap_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 # 윈도우 생성
 cv2.namedWindow('2-screen display', cv2.WINDOW_NORMAL)
@@ -119,50 +126,9 @@ while True:
     # MediaPipe Pose 를 사용한 skeleton estimation
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
 
-        # 비디오 해상도 가져오기
-        video_width = int(cap_video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        video_height = int(cap_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        # 웹캠 해상도 가져오기
-        webcam_width = int(cap_webcam.get(cv2.CAP_PROP_FRAME_WIDTH))
-        webcam_height = int(cap_webcam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        # 웹캠 프레임의 비율 유지하면서 원본 비디오 프레임 크기에 맞게 크기 조정
-        if webcam_width > webcam_height:
-            new_width = int(video_height / webcam_height * webcam_width)
-            new_height = video_height
-        else:
-            new_width = video_width
-            new_height = int(video_width / webcam_width * webcam_height)
-
-        frame_webcam_resized = cv2.resize(frame_webcam, (new_width, new_height))
-
-        # 나머지 빈 영역을 검은색으로 채우기
-        frame = np.zeros((video_height, video_width + new_width, 3), dtype=np.uint8)
-        frame[:, :video_width, :] = frame_video
-        frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
-
         # RGB로 변환 후 넘겨줌
         pose_results = pose.process(cv2.cvtColor(frame_video, cv2.COLOR_BGR2RGB))
         w_pose_results = pose.process(cv2.cvtColor(frame_webcam, cv2.COLOR_BGR2RGB))
-
-        # 왼쪽 손목 강조
-        w_pose_landmarks = w_pose_results.pose_landmarks
-        if w_pose_landmarks is not None:
-            print('nnnn')
-            webcam_left_wrist = w_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
-            if webcam_left_wrist.visibility > 0.5:
-                # 랜드마크 위치 추출
-                left_wrist_x = int(webcam_left_wrist.x * frame.shape[1])
-                left_wrist_y = int(webcam_left_wrist.y * frame.shape[0])
-                    
-                # 랜드마크 강조
-                cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (0, 255, 0), markerType=cv2.MARKER_STAR,
-                            markerSize=20, thickness=2, line_type=cv2.LINE_AA)
-        else:
-            # Handle case when pose landmarks are not detected
-            print('yyyy')
-            pass
 
         # Calculate the similarity score
         similarity = calculate_similarity(pose_results.pose_landmarks, w_pose_results.pose_landmarks)
@@ -221,8 +187,7 @@ while True:
     frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
 
     # 랜드마크 강조
-    cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (0, 255, 0), markerType=cv2.MARKER_STAR,
-                markerSize=20, thickness=2, line_type=cv2.LINE_AA)
+    joint_highlight(frame, w_pose_results.pose_landmarks)
 
     # 윈도우에 프레임 출력
     cv2.imshow('2-screen display', frame)
