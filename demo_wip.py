@@ -73,15 +73,25 @@ def draw_joint_info(frame, score):
     pos = (10, 30)
     cv2.putText(frame, joint_info, pos, font, font_scale, color, thickness, cv2.LINE_AA)
 
-def joint_highlight(frame, webcam_pose_landmarks):
+def w_joint_highlight(frame, webcam_pose_landmarks, width):
     if webcam_pose_landmarks is not None:
         webcam_left_wrist = webcam_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
         if webcam_left_wrist.visibility > 0.1:
             # Calculate the position of the left wrist joint in the frame
-            left_wrist_x = int(webcam_left_wrist.x * frame.shape[1])
+            left_wrist_x = int(width - webcam_left_wrist.x * frame.shape[1])
             left_wrist_y = int(webcam_left_wrist.y * frame.shape[0])
             # Draw a marker at the position of the left wrist joint
-            cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (255, 255, 0), markerType=cv2.MARKER_STAR, markerSize=20, thickness=2, line_type=cv2.LINE_AA)
+            cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (255, 255, 255), markerType=cv2.MARKER_STAR, markerSize=20, thickness=8, line_type=cv2.LINE_AA)
+
+def v_joint_highlight(frame, video_pose_landmarks, width):
+    if video_pose_landmarks is not None:
+        video_left_wrist = video_pose_landmarks.landmark[mp.solutions.pose.PoseLandmark.LEFT_WRIST]
+        if video_left_wrist.visibility > 0.1:
+            # Calculate the position of the left wrist joint in the frame
+            left_wrist_x = int(width - video_left_wrist.x * frame.shape[1])
+            left_wrist_y = int(video_left_wrist.y * frame.shape[0])
+            # Draw a marker at the position of the left wrist joint
+            cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (0, 255, 0), markerType=cv2.MARKER_STAR, markerSize=20, thickness=8, line_type=cv2.LINE_AA)
 
 
 # 영상과 웹캠 캡처 객체 생성
@@ -186,8 +196,10 @@ while True:
     frame[:, :video_width, :] = frame_video
     frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
 
-    # 랜드마크 강조
-    joint_highlight(frame, w_pose_results.pose_landmarks)
+    # 왼쪽 손목 관절 좌표 강조
+        # webcam : white // video : green
+    w_joint_highlight(frame[:, video_width:(video_width+new_width), :], w_pose_results.pose_landmarks, new_width)
+    v_joint_highlight(frame[:, video_width:(video_width+new_width), :], pose_results.pose_landmarks, new_width)
 
     # 윈도우에 프레임 출력
     cv2.imshow('2-screen display', frame)
