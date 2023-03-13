@@ -93,6 +93,36 @@ def v_joint_highlight(frame, video_pose_landmarks, width):
             # Draw a marker at the position of the left wrist joint
             cv2.drawMarker(frame, (left_wrist_x, left_wrist_y), (0, 255, 0), markerType=cv2.MARKER_STAR, markerSize=20, thickness=8, line_type=cv2.LINE_AA)
 
+import json
+
+def calculate_similarity_joints(video_pose_landmarks, webcam_pose_landmarks, filename=None):
+    similarities = {}
+    
+    # Check if webcam pose landmarks are not None
+    if webcam_pose_landmarks is None:
+        return similarities
+    
+    # Calculate the Euclidean distance between each pair of corresponding joints
+    num_landmarks = len(mp.solutions.pose.PoseLandmark)
+    for i in range(num_landmarks):
+        landmark = mp.solutions.pose.PoseLandmark(i)
+        if landmark not in landmark_names:
+            continue
+        video_joint = video_pose_landmarks.landmark[landmark]
+        webcam_joint = webcam_pose_landmarks.landmark[landmark]
+        distance = math.sqrt((video_joint.x - webcam_joint.x)**2 + (video_joint.y - webcam_joint.y)**2)
+        # Convert distance to similarity score using a linear function
+        similarity = max(0, 1 - distance / 0.2)
+        similarities[landmark] = similarity
+    
+    if filename is not None:
+        with open(filename, 'a') as f:
+            json.dump(similarities, f)
+            f.write('\n')
+    
+    return similarities
+
+
 
 # 영상과 웹캠 캡처 객체 생성
 cap_video = cv2.VideoCapture('OMG_sml.mp4')
@@ -155,7 +185,10 @@ while True:
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
             # speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             
-        cv2.putText(frame_video, f'Similarity: {similarity:.2f}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+        # Calculate similarities and save to JSON file
+        similarities = calculate_similarity_joints(pose_results.pose_landmarks, w_pose_results.pose_landmarks, "sim.json")
+
+        # cv2.putText(frame_video, f'Similarity: {similarity:.2f}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
         # cv2.putText(frame_video, f'MV/FPS: {int(score*(fps/4))}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         # Joint Info 표기
@@ -211,3 +244,6 @@ while True:
 cap_video.release()
 cap_webcam.release()
 cv2.destroyAllWindows()
+
+# JSON 파일 닫기
+"sim.json".close()
