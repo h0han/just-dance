@@ -155,8 +155,8 @@ while True:
             score, prev_pose_landmarks = calculate_movement(joint, pose_landmarks, pose_landmarks, score)
             # speed, prev_pose_landmarks = calculate_speed(joint, pose_landmarks, prev_pose_landmarks, speed)
             
-        cv2.putText(frame_video, f'Similarity: {similarity:.2f}', (10, 140), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-        cv2.putText(frame_video, f'MV/FPS: {int(score*(fps/4))}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        cv2.putText(frame_video, f'Similarity: {similarity:.2f}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+        # cv2.putText(frame_video, f'MV/FPS: {int(score*(fps/4))}', (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         # Joint Info 표기
         draw_joint_info(frame_video, score)
@@ -197,7 +197,6 @@ while True:
     frame[:, video_width:(video_width+new_width), :] = frame_webcam_resized[:, ::-1, :]
 
     # 왼쪽 손목 관절 좌표 강조
-        # webcam : white // video : green
     w_joint_highlight(frame[:, video_width:(video_width+new_width), :], w_pose_results.pose_landmarks, new_width)
     v_joint_highlight(frame[:, video_width:(video_width+new_width), :], pose_results.pose_landmarks, new_width)
 
